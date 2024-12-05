@@ -15,30 +15,35 @@ class AppWindow(Tk):
         self.build()
 
     def build(self):
-        self.top_bar = TopBar(self)
-        self.top_bar.pack(side="top", fill="x")
+        main_frame = Frame(self, bg=COLOR_PRIMARY_DARK)
+        main_frame.pack(side="top", fill="both", expand=True)
 
-        self.main_frame = Frame(self, bg=COLOR_PRIMARY_DARK)
-        self.main_frame.pack(side="top", fill="both", expand=True)
+        main_frame.grid_rowconfigure(0, weight=1, uniform="y")
+        main_frame.grid_rowconfigure(1, weight=10, uniform="y")
+        main_frame.grid_columnconfigure(0, weight=1, uniform="y")
+        main_frame.grid_columnconfigure(1, weight=3, uniform="y")
 
-        self.main_frame.grid_rowconfigure(0, weight=1)
-        self.main_frame.grid_columnconfigure(0, weight=1)
+        top_bar = Header(main_frame)
+        top_bar.grid(row=0, column=0, columnspan=2, sticky="nswe")
 
-        self.frames = {}
+        side_bar = SideBar(main_frame)
+        side_bar.grid(row=1, column=0, sticky="nswe")
+
+        main = Main(main_frame)
+        main.grid(row=1, column=1, sticky="nswe")
 
     def start(self):
         self.mainloop()
 
-
-class TopBar(Frame):
+class Header(Frame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(bg=COLOR_SECONDARY)
-        self.pack(side="top", fill="x")
 
         self.build()
 
     def build(self):
+        # pass
         icon = PhotoImage(file="gui/assets/icon.png")
         label = Label(self, image=icon, bg=COLOR_SECONDARY)
         label.image = icon
@@ -49,3 +54,23 @@ class TopBar(Frame):
 
         label = Label(self, text="IF4073 Pemrosesan Citra Digital", font=("Poppins", 12), fg=COLOR_PRIMARY, bg=COLOR_SECONDARY)
         label.pack(side="right", padx=16)
+
+class SideBar(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.configure(bg=COLOR_PRIMARY)
+
+        self.build()
+
+    def build(self):
+        pass
+
+class Main(Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.configure(bg=COLOR_PRIMARY_DARK)
+
+        self.build()
+
+    def build(self):
+        pass
