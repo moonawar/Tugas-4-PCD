@@ -1,16 +1,18 @@
 from tkinter import *
 from gui.color import *
+from gui.utils import *
 import ctypes
 
 class AppWindow(Tk):
     def __init__(self):
         super().__init__()
 
-        # Corrects DPI scaling on Windows
+        # Corrects DPI scaling on Windows (Removes blurry visuals)
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
 
         self.title("Vehicle Recognition App")
         self.geometry("1280x720")
+        self.resizable(False, False)
 
         self.build()
 
@@ -63,6 +65,29 @@ class SideBar(Frame):
         self.build()
 
     def build(self):
+        create_space(self, bg=COLOR_PRIMARY)
+
+        label = Label(self, text="Input Image", font=("Poppins", 14, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
+        label.pack(side="top", anchor="w", padx=24, pady=4)
+
+        btn_image = PhotoImage(file="gui/assets/btn-choose-file.png")
+        btn = Button(self, image=btn_image, fg=COLOR_PRIMARY, bg=COLOR_PRIMARY, bd=0)
+        btn.image = btn_image
+        btn.pack(side="top", anchor="w", padx=24, pady=4)
+
+        self.selected_label = Label(self, text="No file selected", font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
+        self.selected_label.pack(side="top", anchor="w", padx=24, pady=4)
+
+        canvas = Canvas(self, width=300, height=300, bg=COLOR_SECONDARY, highlightthickness=0)
+        canvas.pack(side="top", padx=24, pady=4, anchor="center")
+
+        create_space(self, bg=COLOR_PRIMARY)
+
+        btn_image = PhotoImage(file="gui/assets/btn-run.png")
+        btn = Button(self, image=btn_image, bg=COLOR_PRIMARY, fg=COLOR_SECONDARY, bd=0)
+        btn.image = btn_image
+        btn.pack(side="top", anchor="center", padx=24, pady=4)
+
         pass
 
 class Main(Frame):
