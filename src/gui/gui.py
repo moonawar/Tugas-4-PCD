@@ -3,12 +3,14 @@ from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 import ctypes
 import time
+import threading
 
 from gui.color import *
 from gui.utils import *
 
 PLACEHOLDER_IMAGE_PIL = Image.open("gui/assets/placeholder.png")
 input_image_path = ""
+is_running = False
 
 # String Vars
 status_text = None
@@ -50,7 +52,7 @@ def fit_image(image, max_size):
 def extract_filename(filepath):
     return filepath.split("/")[-1]
 
-def run_algorithm():
+def run_algorithm_sync():
     global input_image_path
 
     if not input_image_path:
@@ -59,11 +61,19 @@ def run_algorithm():
     
     input_image = Image.open(input_image_path)
 
-    # time.sleep(2)
+    time.sleep(2)
     output_pretrained = input_image
     output_improc = input_image
 
     return output_pretrained, output_improc
+
+def run_algorithm_async(callback):
+    def task():
+        output_pretrained, output_improc = run_algorithm_sync()
+        callback(output_pretrained, output_improc)
+
+    thread = threading.Thread(target=task)
+    thread.start()
 
 class AppWindow(Tk):
     def __init__(self):
@@ -166,25 +176,35 @@ class SideBar(Frame):
             self.clear_output()
             self.reset_status()
 
+            self.output_pretrained = None
+            self.output_improc = None
+
     def run_algorithm(self):
         global status_text, message_text
         status_text.set("Status: Running")
-        message_text.set("Running the application...")
+        message_text.set("Running the algorithm...")  
 
-        output_pretrained, output_improc = run_algorithm()
+        self.choose_file_button.config(state="disabled")
+        self.run_button.config(state="disabled")
 
-        status_text.set("Status: Done")
-        message_text.set("The application has finished running!")
+        def callback(output_pretrained, output_improc):
+            status_text.set("Status: Done")
+            message_text.set("The application has finished running!")
 
-        output_pretrained = fit_image(output_pretrained, 360)
-        output_pretrained_image = Result.output_images["pretrained"]
-        output_pretrained_image.config(image=output_pretrained)
-        output_pretrained_image.image = output_pretrained
+            output_pretrained = fit_image(output_pretrained, 360)
+            output_pretrained_image = Result.output_images["pretrained"]
+            output_pretrained_image.config(image=output_pretrained)
+            output_pretrained_image.image = output_pretrained
 
-        output_improc = fit_image(output_improc, 360)
-        output_improc_image = Result.output_images["improc"]
-        output_improc_image.config(image=output_improc)
-        output_improc_image.image = output_improc
+            output_improc = fit_image(output_improc, 360)
+            output_improc_image = Result.output_images["improc"]
+            output_improc_image.config(image=output_improc)
+            output_improc_image.image = output_improc
+
+            self.choose_file_button.config(state="normal")
+            self.run_button.config(state="normal")
+
+        run_algorithm_async(callback)
 
     def build(self):
         create_space(self, bg=COLOR_PRIMARY)
@@ -193,9 +213,9 @@ class SideBar(Frame):
         label.pack(side="top", anchor="w", padx=24, pady=4)
 
         button_image = PhotoImage(file="gui/assets/btn-choose-file.png")
-        button = Button(self, image=button_image, fg=COLOR_PRIMARY, bg=COLOR_PRIMARY, bd=0, command=self.choose_input_file)
-        button.image = button_image
-        button.pack(side="top", anchor="w", padx=24, pady=4)
+        self.choose_file_button = Button(self, image=button_image, fg=COLOR_PRIMARY, bg=COLOR_PRIMARY, bd=0, command=self.choose_input_file)
+        self.choose_file_button.image = button_image
+        self.choose_file_button.pack(side="top", anchor="w", padx=24, pady=4)
 
         self.selected_file_text = StringVar(value="No file selected")
         selected_label = Label(self, textvariable=self.selected_file_text, font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
@@ -210,9 +230,9 @@ class SideBar(Frame):
         create_space(self, bg=COLOR_PRIMARY)
 
         button_image = PhotoImage(file="gui/assets/btn-run.png")
-        button = Button(self, image=button_image, bg=COLOR_PRIMARY, fg=COLOR_SECONDARY, bd=0, command=self.run_algorithm)
-        button.image = button_image
-        button.pack(side="top", anchor="center", padx=24, pady=4)
+        self.run_button = Button(self, image=button_image, bg=COLOR_PRIMARY, fg=COLOR_SECONDARY, bd=0, command=self.run_algorithm)
+        self.run_button.image = button_image
+        self.run_button.pack(side="top", anchor="center", padx=24, pady=4)
 
         pass
 
