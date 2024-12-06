@@ -1,11 +1,69 @@
 from tkinter import *
+from tkinter import filedialog, messagebox
+from PIL import Image, ImageTk
+import ctypes
+import time
+
 from gui.color import *
 from gui.utils import *
-import ctypes
-
-from PIL import Image, ImageTk
 
 PLACEHOLDER_IMAGE_PIL = Image.open("gui/assets/placeholder.png")
+input_image_path = ""
+
+# String Vars
+status_text = None
+message_text = None
+
+def choose_file():
+    filepath = filedialog.askopenfilename(
+        title="Select an image",
+        filetypes=[("Image Files", "*.png *.jpg *.jpeg *.gif *.bmp")],
+    )
+
+    return filepath
+
+def calc_image_size(image, max_size):
+    width, height = image.size
+
+    if width > height:
+        new_width = max_size
+        new_height = int(max_size * height / width)
+    else:
+        new_width = int(max_size * width / height)
+        new_height = max_size
+
+    return new_width, new_height
+
+def fit_image(image, max_size):
+    width, height = calc_image_size(image, max_size)
+    image = image.resize((width, height), Image.ANTIALIAS)
+
+    canvas = Image.new("RGB", (max_size, max_size), COLOR_SECONDARY)
+
+    x_offset = (max_size - width) // 2
+    y_offset = (max_size - height) // 2
+    canvas.paste(image, (x_offset, y_offset))
+
+    image = ImageTk.PhotoImage(canvas)
+    return image
+
+def extract_filename(filepath):
+    return filepath.split("/")[-1]
+
+def run_algorithm():
+    global input_image_path
+
+    if not input_image_path:
+        messagebox.showerror("Error", "Please select an image first!")
+        return
+    
+    input_image = Image.open(input_image_path)
+
+    # time.sleep(2)
+    output_pretrained = input_image
+    output_improc = input_image
+
+    return output_pretrained, output_improc
 
 class AppWindow(Tk):
     def __init__(self):
@@ -18,7 +76,13 @@ class AppWindow(Tk):
         self.geometry("1280x720")
         self.resizable(False, False)
 
+        self.init_vars()
         self.build()
+
+    def init_vars(self):
+        global status_text, message_text
+        status_text = StringVar(value="Status: Idle")
+        message_text = StringVar(value="Waiting for the application to be run!")
 
     def build(self):
         main_frame = Frame(self, bg=COLOR_PRIMARY_DARK)
@@ -40,6 +104,7 @@ class AppWindow(Tk):
 
     def start(self):
         self.mainloop()
+
 
 class Header(Frame):
     def __init__(self, master):
@@ -68,6 +133,59 @@ class SideBar(Frame):
 
         self.build()
 
+    def clear_output(self):
+        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.ANTIALIAS)
+        placeholder_image = ImageTk.PhotoImage(placeholder_image)
+
+        output_pretrained_image = Result.output_images["pretrained"]
+        output_pretrained_image.config(image=placeholder_image)
+        output_pretrained_image.image = placeholder_image
+
+        output_improc_image = Result.output_images["improc"]
+        output_improc_image.config(image=placeholder_image)
+        output_improc_image.image = placeholder_image
+
+    def reset_status(self):
+        global status_text, message_text
+        status_text.set("Status: Idle")
+        message_text.set("Waiting for the application to be run!")
+
+
+    def choose_input_file(self):
+        global input_image_path
+        input_image_path = choose_file()
+
+        if input_image_path:
+            image = Image.open(input_image_path)
+            image = fit_image(image, 300)
+
+            self.input_image.config(image=image)
+            self.input_image.image = image
+
+            self.selected_file_text.set(extract_filename(input_image_path))
+            self.clear_output()
+            self.reset_status()
+
+    def run_algorithm(self):
+        global status_text, message_text
+        status_text.set("Status: Running")
+        message_text.set("Running the application...")
+
+        output_pretrained, output_improc = run_algorithm()
+
+        status_text.set("Status: Done")
+        message_text.set("The application has finished running!")
+
+        output_pretrained = fit_image(output_pretrained, 360)
+        output_pretrained_image = Result.output_images["pretrained"]
+        output_pretrained_image.config(image=output_pretrained)
+        output_pretrained_image.image = output_pretrained
+
+        output_improc = fit_image(output_improc, 360)
+        output_improc_image = Result.output_images["improc"]
+        output_improc_image.config(image=output_improc)
+        output_improc_image.image = output_improc
+
     def build(self):
         create_space(self, bg=COLOR_PRIMARY)
 
@@ -75,23 +193,24 @@ class SideBar(Frame):
         label.pack(side="top", anchor="w", padx=24, pady=4)
 
         button_image = PhotoImage(file="gui/assets/btn-choose-file.png")
-        button = Button(self, image=button_image, fg=COLOR_PRIMARY, bg=COLOR_PRIMARY, bd=0)
+        button = Button(self, image=button_image, fg=COLOR_PRIMARY, bg=COLOR_PRIMARY, bd=0, command=self.choose_input_file)
         button.image = button_image
         button.pack(side="top", anchor="w", padx=24, pady=4)
 
-        self.selected_label = Label(self, text="No file selected", font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
-        self.selected_label.pack(side="top", anchor="w", padx=24, pady=4)
+        self.selected_file_text = StringVar(value="No file selected")
+        selected_label = Label(self, textvariable=self.selected_file_text, font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
+        selected_label.pack(side="top", anchor="w", padx=24, pady=4)
 
         placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((300, 300), Image.ANTIALIAS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
-        input_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY)
-        input_image.image = placeholder_image
-        input_image.pack(side="top", anchor="center", padx=24, pady=4)
+        self.input_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY)
+        self.input_image.image = placeholder_image
+        self.input_image.pack(side="top", anchor="center", padx=24, pady=4)
 
         create_space(self, bg=COLOR_PRIMARY)
 
         button_image = PhotoImage(file="gui/assets/btn-run.png")
-        button = Button(self, image=button_image, bg=COLOR_PRIMARY, fg=COLOR_SECONDARY, bd=0)
+        button = Button(self, image=button_image, bg=COLOR_PRIMARY, fg=COLOR_SECONDARY, bd=0, command=self.run_algorithm)
         button.image = button_image
         button.pack(side="top", anchor="center", padx=24, pady=4)
 
@@ -110,12 +229,12 @@ class Main(Frame):
         self.grid_columnconfigure(0, weight=1, uniform="y")
         self.grid_columnconfigure(1, weight=1, uniform="y")
 
-        result_pretrained_frame = Result(self)
+        result_pretrained_frame = Result(self, "pretrained")
         result_pretrained_frame.set_label("Result (Pretrained Model)")
         result_pretrained_frame.set_output_path("../output/")
         result_pretrained_frame.grid(row=0, column=0, sticky="nswe")
 
-        result_improc_frame = Result(self)
+        result_improc_frame = Result(self, "improc")
         result_improc_frame.set_label("Result (Image Processing)")
         result_improc_frame.set_output_path("../output/")
         result_improc_frame.grid(row=0, column=1, sticky="nswe")
@@ -126,35 +245,41 @@ class Main(Frame):
 
         create_space(bottom_frame, bg=COLOR_PRIMARY_DARK, sizey=2)
 
-        self.statusText = StringVar(value="Status: Idle")
-        status = Label(bottom_frame, textvariable=self.statusText, font=("Poppins", 12, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
+        global status_text, message_text
+
+        status = Label(bottom_frame, textvariable=status_text, font=("Poppins", 12, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
         status.pack(side="top", padx=(56, 0), anchor="w")
 
-        self.messageText = StringVar(value="Waiting for the application to be run!")
-        message = Label(bottom_frame, textvariable=self.messageText, font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
+        message = Label(bottom_frame, textvariable=message_text, font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
         message.pack(side="top", padx=(56, 0), anchor="w")
         pass
 
 class Result(Frame):
-    def __init__(self, master):
+    output_images = {}
+
+    def __init__(self, master, method):
         super().__init__(master)
         self.configure(bg=COLOR_PRIMARY_DARK)
 
+        self.method = method
         self.build()
 
     def build(self):
         create_space(self, bg=COLOR_PRIMARY_DARK)
 
         self.outputPath = ""
-        self.labelText = StringVar(value="Result")
-        self.label = Label(self, textvariable=self.labelText, font=("Poppins", 14, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
+        self.label_text = StringVar(value="Result")
+        self.label = Label(self, textvariable=self.label_text, font=("Poppins", 14, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
         self.label.pack(side="top", anchor="w", padx=(56, 0), pady=4)
 
         placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.ANTIALIAS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
+
         output_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY_DARK)
         output_image.image = placeholder_image
         output_image.pack(side="top", anchor="center", padx=24, pady=4)
+
+        Result.output_images[self.method] = output_image
 
         create_space(self, bg=COLOR_PRIMARY_DARK)
 
@@ -164,7 +289,7 @@ class Result(Frame):
         button.pack(side="top", anchor="w", padx=(56, 0))
 
     def set_label(self, text):
-        self.labelText.set(text)
+        self.label_text.set(text)
 
     def set_output_path(self, path):
         self.outputPath = path
