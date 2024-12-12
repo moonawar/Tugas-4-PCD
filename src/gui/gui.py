@@ -38,7 +38,7 @@ def calc_image_size(image, max_size):
 
 def fit_image(image, max_size):
     width, height = calc_image_size(image, max_size)
-    image = image.resize((width, height), Image.ANTIALIAS)
+    image = image.resize((width, height), Image.Resampling.LANCZOS)
 
     canvas = Image.new("RGB", (max_size, max_size), COLOR_SECONDARY)
 
@@ -144,7 +144,7 @@ class SideBar(Frame):
         self.build()
 
     def clear_output(self):
-        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.ANTIALIAS)
+        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.Resampling.LANCZOS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
 
         output_pretrained_image = Result.output_images["pretrained"]
@@ -221,7 +221,7 @@ class SideBar(Frame):
         selected_label = Label(self, textvariable=self.selected_file_text, font=("Poppins", 12), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY)
         selected_label.pack(side="top", anchor="w", padx=24, pady=4)
 
-        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((300, 300), Image.ANTIALIAS)
+        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((300, 300), Image.Resampling.LANCZOS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
         self.input_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY)
         self.input_image.image = placeholder_image
@@ -292,7 +292,7 @@ class Result(Frame):
         self.label = Label(self, textvariable=self.label_text, font=("Poppins", 14, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
         self.label.pack(side="top", anchor="w", padx=(56, 0), pady=4)
 
-        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.ANTIALIAS)
+        placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.Resampling.LANCZOS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
 
         output_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY_DARK)
