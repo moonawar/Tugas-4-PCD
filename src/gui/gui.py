@@ -61,6 +61,7 @@ def run_algorithm_sync():
     
     input_image = Image.open(input_image_path)
 
+    # TODO INSERT IMAGE RESULT HERE
     time.sleep(2)
     output_pretrained = input_image
     output_improc = input_image
