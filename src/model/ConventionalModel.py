@@ -103,4 +103,4 @@ def classify_image(image_path, model_path):
     # Prediksi kelas menggunakan model SVM
     prediction = svm_model.predict(features)
     
-    return prediction[0]
+    return prediction[0].capitalize()

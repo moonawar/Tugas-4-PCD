@@ -4,12 +4,25 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 import json
 
+TRANSLATION_MAP = {
+    "airplane": "Pesawat",
+    "car": "Mobil",
+    "bird": "Burung",
+    "cat": "Kucing",
+    "deer": "Rusa",
+    "dog": "Anjing",
+    "frog": "Katak",
+    "horse": "Kuda",
+    "ship": "Kapal",
+    "truck": "Truk"
+}
+
 def classify_image(image_path):
     # Load model
-    model = load_model('./model/cnn_model.h5')
+    model = load_model('../model/cnn_model.h5')
 
     # Load class labels
-    with open('.modelcnn_class_labels.json', 'r') as f:
+    with open('../model/cnn_class_labels.json', 'r') as f:
         class_indices = json.load(f)
     
     # Load image
@@ -21,5 +34,7 @@ def classify_image(image_path):
     # Classify image
     prediction = model.predict(img_array)
     predicted_class = class_indices[np.argmax(prediction)]
+
+    predicted_class = TRANSLATION_MAP[predicted_class]
 
     return predicted_class

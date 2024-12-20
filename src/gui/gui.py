@@ -7,6 +7,8 @@ import threading
 
 from gui.color import *
 from gui.utils import *
+from model.PretrainedModel import classify_image as classify_image_pretrained
+from model.ConventionalModel import classify_image as classify_image_improc
 
 PLACEHOLDER_IMAGE_PIL = Image.open("gui/assets/placeholder.png")
 input_image_path = ""
@@ -15,6 +17,9 @@ is_running = False
 # String Vars
 status_text = None
 message_text = None
+
+# PATH CONSTANT
+MODEL_PATH = "../model/conventional_model.joblib"
 
 def choose_file():
     filepath = filedialog.askopenfilename(
@@ -58,15 +63,11 @@ def run_algorithm_sync():
     if not input_image_path:
         messagebox.showerror("Error", "Please select an image first!")
         return
+
+    pretrained_class = classify_image_pretrained(input_image_path)
+    improc_class = classify_image_improc(input_image_path, MODEL_PATH)
     
-    input_image = Image.open(input_image_path)
-
-    # TODO INSERT IMAGE RESULT HERE
-    time.sleep(2)
-    output_pretrained = input_image
-    output_improc = input_image
-
-    return output_pretrained, output_improc
+    return pretrained_class, improc_class
 
 def run_algorithm_async(callback):
     def task():
@@ -75,6 +76,17 @@ def run_algorithm_async(callback):
 
     thread = threading.Thread(target=task)
     thread.start()
+
+def add_text_with_bg(canvas, text, font, text_color, bg_color):
+    text_id = canvas.create_text(5, 355, text=text, fill=text_color, font=font, anchor="sw")
+    bbox = canvas.bbox(text_id)
+
+    if bbox:
+        x1, y1, x2, y2 = bbox
+        padding = 5
+        canvas.create_rectangle(x1-padding, y1-padding, x2+padding, y2+padding, fill=bg_color, width=0)
+        canvas.tag_raise(text_id)
+        
 
 class AppWindow(Tk):
     def __init__(self):
@@ -149,12 +161,17 @@ class SideBar(Frame):
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
 
         output_pretrained_image = Result.output_images["pretrained"]
-        output_pretrained_image.config(image=placeholder_image)
+        output_pretrained_image.delete("all")
+        output_pretrained_image.create_image(180, 180, image=placeholder_image)
         output_pretrained_image.image = placeholder_image
 
         output_improc_image = Result.output_images["improc"]
-        output_improc_image.config(image=placeholder_image)
+        output_improc_image.delete("all")
+        output_improc_image.create_image(180, 180, image=placeholder_image)
         output_improc_image.image = placeholder_image
+
+        Result.class_labels["pretrained"].config(text="Class: None")
+        Result.class_labels["improc"].config(text="Class: None")
 
     def reset_status(self):
         global status_text, message_text
@@ -188,19 +205,34 @@ class SideBar(Frame):
         self.choose_file_button.config(state="disabled")
         self.run_button.config(state="disabled")
 
-        def callback(output_pretrained, output_improc):
+        def callback(pretrained_class, improc_class):
             status_text.set("Status: Done")
             message_text.set("The application has finished running!")
 
-            output_pretrained = fit_image(output_pretrained, 360)
-            output_pretrained_image = Result.output_images["pretrained"]
-            output_pretrained_image.config(image=output_pretrained)
-            output_pretrained_image.image = output_pretrained
+            base_image = Image.open(input_image_path)
+            base_image = fit_image(base_image, 360)
 
-            output_improc = fit_image(output_improc, 360)
+            output_pretrained_image = Result.output_images["pretrained"]
+            output_pretrained_image.delete("all")
+            output_pretrained_image.create_image(180, 180, image=base_image)
+            output_pretrained_image.image = base_image
+            add_text_with_bg(
+                output_pretrained_image, f"Class: {pretrained_class}", ("Poppins", 12, "bold"), 
+                COLOR_PRIMARY_DARK, COLOR_ACCENT
+            )
+
+            Result.class_labels["pretrained"].config(text=f"Class: {pretrained_class}")
+
             output_improc_image = Result.output_images["improc"]
-            output_improc_image.config(image=output_improc)
-            output_improc_image.image = output_improc
+            output_improc_image.delete("all")
+            output_improc_image.create_image(180, 180, image=base_image)
+            output_improc_image.image = base_image
+            add_text_with_bg(
+                output_improc_image, f"Class: {improc_class}", ("Poppins", 12, "bold"), 
+                COLOR_PRIMARY_DARK, COLOR_ACCENT
+            )
+
+            Result.class_labels["improc"].config(text=f"Class: {improc_class}")
 
             self.choose_file_button.config(state="normal")
             self.run_button.config(state="normal")
@@ -277,6 +309,7 @@ class Main(Frame):
 
 class Result(Frame):
     output_images = {}
+    class_labels = {}
 
     def __init__(self, master, method):
         super().__init__(master)
@@ -296,18 +329,17 @@ class Result(Frame):
         placeholder_image = PLACEHOLDER_IMAGE_PIL.resize((360, 360), Image.Resampling.LANCZOS)
         placeholder_image = ImageTk.PhotoImage(placeholder_image)
 
-        output_image = Label(self, image=placeholder_image, bg=COLOR_PRIMARY_DARK)
+        output_image = Canvas(self, width=360, height=360, bg=COLOR_PRIMARY_DARK, highlightthickness=0)
+        output_image.create_image(180, 180, image=placeholder_image)
         output_image.image = placeholder_image
         output_image.pack(side="top", anchor="center", padx=24, pady=4)
 
         Result.output_images[self.method] = output_image
 
-        create_space(self, bg=COLOR_PRIMARY_DARK)
+        label = Label(self, text="Class: None", font=("Poppins", 12, "bold"), fg=COLOR_SECONDARY, bg=COLOR_PRIMARY_DARK)
+        # label.pack(side="top", anchor="w", padx=(56, 0), pady=4)
 
-        button_image = PhotoImage(file="gui/assets/btn-save.png")
-        button = Button(self, image=button_image, bg=COLOR_PRIMARY_DARK, fg=COLOR_PRIMARY_DARK, bd=0)
-        button.image = button_image
-        button.pack(side="top", anchor="w", padx=(56, 0))
+        Result.class_labels[self.method] = label
 
     def set_label(self, text):
         self.label_text.set(text)
