@@ -217,11 +217,11 @@ class SideBar(Frame):
             output_pretrained_image.create_image(180, 180, image=base_image)
             output_pretrained_image.image = base_image
             add_text_with_bg(
-                output_pretrained_image, f"Class: {pretrained_class}", ("Poppins", 12, "bold"), 
+                output_pretrained_image, f"Class (Pretrained): {pretrained_class}", ("Poppins", 12, "bold"), 
                 COLOR_PRIMARY_DARK, COLOR_ACCENT
             )
 
-            Result.class_labels["pretrained"].config(text=f"Class (Pretrained): {pretrained_class}")
+            Result.class_labels["pretrained"].config(text=f"Class: {pretrained_class}")
 
             output_improc_image = Result.output_images["improc"]
             output_improc_image.delete("all")
