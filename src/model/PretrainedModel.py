@@ -5,7 +5,7 @@ import numpy as np
 import json
 
 TRANSLATION_MAP = {
-    "airplane": "Pesawat",
+    "bus": "Bus",
     "car": "Mobil",
     "bird": "Burung",
     "cat": "Kucing",
